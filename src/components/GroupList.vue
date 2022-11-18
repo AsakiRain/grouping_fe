@@ -2,7 +2,7 @@
   <div id="groupContent">
     <a-card v-for="(group, index) in data" :key="index">
       <template #title>
-        <span class="groupTitle">小组{{ index }}</span>
+        <span class="groupTitle">小组{{ index + 1 }}</span>
       </template>
       <transition-group tag="div" name="item" class="group">
         <MyCard

@@ -3,6 +3,7 @@
     <h1>在线分组</h1>
   </div>
   <div id="main">
+    <!-- 文件选择和设置面板 -->
     <a-spin :loading="isLoading" :tip="loadingTip" id="cardWrapper">
       <a-card hoverable id="card">
         <div id="cardContent">
@@ -52,7 +53,7 @@
                 组
               </span>
               <span v-if="remainder !== 0">
-                ，其中一组只有
+                ，其中一组最少只有
                 <a-tag color="red">{{ remainder }}</a-tag>
                 人
               </span>
@@ -79,30 +80,11 @@
           </div>
           <div id="right">
             <div id="infoTitle">文件信息</div>
-            <a-descriptions
-              v-if="fileObj != null"
-              :title="fileObj.filename"
-              :column="1"
-            >
-              <a-descriptions-item label="文件大小">
-                {{ fileObj.filesize }}字节
-              </a-descriptions-item>
-              <a-descriptions-item label="编辑时间">
-                {{ fileObj.modified }}
-              </a-descriptions-item>
-              <a-descriptions-item label="工作表名">
-                {{ fileObj.sheet }}
-              </a-descriptions-item>
-              <a-descriptions-item label="字段数">
-                {{ fileObj.colcount }}
-              </a-descriptions-item>
-              <a-descriptions-item label="记录条数">
-                {{ fileObj.rowcount }}
-              </a-descriptions-item>
-              <a-descriptions-item label="选中人数">
-                {{ selectedList.length }}
-              </a-descriptions-item>
-            </a-descriptions>
+            <MyDesc
+              v-if="fileObj !== null"
+              :fileObj="fileObj"
+              :selectedCount="selectedCount"
+            />
             <a-empty v-else>
               <span>请先选择文件</span>
             </a-empty>
@@ -110,6 +92,7 @@
         </div>
       </a-card>
     </a-spin>
+    <!-- 排序和分组容器-->
     <transition name="fade" mode="out-in">
       <SortList v-if="!isSorted" :data="selectedList" />
       <GroupList v-else :data="groups" />
@@ -146,6 +129,7 @@ import { onMounted, ref, reactive, computed } from "vue";
 import sleep from "@/utils/sleep";
 import SortList from "@/components/SortList.vue";
 import GroupList from "@/components/GroupList.vue";
+import MyDesc from "./components/MyDesc.vue";
 import type { FileObj, Student } from "@/types/types";
 
 const { v: isLoading, set: setLoading } = useToggle(); //请求后端中的状态
@@ -154,27 +138,35 @@ const { v: isDisable, set: setDisable } = useToggle(true); //禁用按钮的状�
 const { v: isModalVis, set: setModalVis } = useToggle(false);
 const { v: isSorted, set: setSorted } = useToggle(); //处理任务中的状态
 
+const loadingTip = ref(""); // 加载提示
+
+const fileList = ref<string[]>([]); // 文件列表
+const filename = ref(""); // 选中的文件名
+const fileObj = ref<FileObj | null>(null); // 请求结果
+
 const rowSelection = reactive<TableRowSelection>({
   type: "checkbox",
   showCheckedAll: true,
   onlyCurrent: false,
 });
-const selectedKeys = ref<string[]>([]);
-const loadingTip = ref(""); // 加载提示
-const fileList = ref<string[]>([]); // 文件列表
-const filename = ref(""); // 选中的文件名
-const fileObj = ref<FileObj | null>(null); // 请求结果
-const selectedList = ref<Student[]>([]); // 选中的学生列表
-const sortingList = ref<Student[]>([]); // 排序中的的学生列表
+
+const selectedKeys = ref<string[]>([]); // 选中的学生名字（表格以名字作为主键）
+const selectedList = ref<Student[]>([]); // 选中的学生对象列表
+const selectedCount = computed(() => selectedKeys.value.length); // 选中的学生数量
+
 const divider = ref(4); // 每组人数
-const groups = ref<Student[][]>([]); // 分组结果
-const epoch = ref(5); // 洗牌次数
 const count = computed(() => {
-  return Math.ceil(selectedList.value.length / divider.value);
+  return Math.ceil(selectedCount.value / divider.value);
 }); // 分组数量
 const remainder = computed(() => {
-  return selectedList.value.length % divider.value;
+  return selectedCount.value % divider.value;
 }); // 最后一组人数
+
+const epoch = ref(5); // 洗牌次数
+
+const sortingList = ref<Student[]>([]); // 排序中的的学生列表
+const groups = ref<Student[][]>([]); // 分组结果
+
 onMounted(async () => {
   loadingTip.value = "正在获取文件列表";
   setLoading(true);
@@ -205,9 +197,11 @@ const handleStart = async () => {
   await shuffle();
   setPending(false);
 };
+
 const handleEdit = () => {
   setModalVis(true);
 };
+
 const applyEdit = async (done: () => void) => {
   selectedList.value = fileObj.value?.records.filter((record) =>
     selectedKeys.value.includes(record.name)
@@ -216,19 +210,21 @@ const applyEdit = async (done: () => void) => {
   done();
   setModalVis(false);
 };
+
 const cancelEdit = () => {
   setModalVis(false);
 };
 
 const shuffle = async () => {
   setSorted(false);
+  
   for (let i = 0; i < count.value; i++) {
     groups.value[i] = []; //初始化分组
   }
-  const len = selectedList.value.length;
+  
   sortingList.value = selectedList.value.slice(0); //复制一份
   for (let i = 0; i < epoch.value; i++) {
-    for (let j = len - 1; j >= 0; j--) {
+    for (let j = selectedCount.value - 1; j >= 0; j--) {
       const index = Math.floor(Math.random() * j);
       const temp = sortingList.value[j];
       sortingList.value[j] = sortingList.value[index];
@@ -237,10 +233,12 @@ const shuffle = async () => {
     selectedList.value = sortingList.value.slice(0);
     await sleep(320);
   }
-  setSorted(true);
-  for (let i = 0; i < len; i++) {
+    
+  for (let i = 0; i < selectedCount.value; i++) {
     groups.value[i % count.value].push(sortingList.value[i]);
   }
+
+  setSorted(true);
 };
 </script>
 <style lang="css">
@@ -295,13 +293,15 @@ const shuffle = async () => {
 
 .fade-enter-active,
 .fade-leave-active {
-  transition: all 0.6s ease-out;
+  transition: all 0.5s ease-out;
 }
+
 .fade-enter-from,
 .fade-leave-to {
   transform: translateY(60px);
-  opacity: 0.6;
+  opacity: 0.4;
 }
+
 .fade-enter-to,
 .fade-leave-from {
   transform: translateY(0);
