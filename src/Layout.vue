@@ -167,6 +167,8 @@ const epoch = ref(5); // 洗牌次数
 const sortingList = ref<Student[]>([]); // 排序中的的学生列表
 const groups = ref<Student[][]>([]); // 分组结果
 
+const delay = ref(0); // 重新运行分组的延迟
+
 onMounted(async () => {
   loadingTip.value = "正在获取文件列表";
   setLoading(true);
@@ -217,11 +219,12 @@ const cancelEdit = () => {
 
 const shuffle = async () => {
   setSorted(false);
-  
+  await sleep(delay.value);
+
   for (let i = 0; i < count.value; i++) {
     groups.value[i] = []; //初始化分组
   }
-  
+
   sortingList.value = selectedList.value.slice(0); //复制一份
   for (let i = 0; i < epoch.value; i++) {
     for (let j = selectedCount.value - 1; j >= 0; j--) {
@@ -233,12 +236,13 @@ const shuffle = async () => {
     selectedList.value = sortingList.value.slice(0);
     await sleep(320);
   }
-    
+
   for (let i = 0; i < selectedCount.value; i++) {
     groups.value[i % count.value].push(sortingList.value[i]);
   }
 
   setSorted(true);
+  delay.value = 1000;
 };
 </script>
 <style lang="css">
