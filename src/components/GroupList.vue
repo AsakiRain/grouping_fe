@@ -7,7 +7,7 @@
       <transition-group tag="div" name="item" class="group">
         <MyCard
           v-for="item in group"
-          :key="item.id"
+          :key="item.name"
           :data="item"
           class="groupItem"
         />

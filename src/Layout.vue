@@ -124,7 +124,11 @@
 </template>
 <script lang="ts" setup>
 import useToggle from "@/utils/useToggle";
-import { TableColumnData, TableRowSelection } from "@arco-design/web-vue";
+import {
+  Modal,
+  TableColumnData,
+  TableRowSelection,
+} from "@arco-design/web-vue";
 import { onMounted, ref, reactive, computed } from "vue";
 import sleep from "@/utils/sleep";
 import SortList from "@/components/SortList.vue";
@@ -172,26 +176,47 @@ const delay = ref(0); // 重新运行分组的延迟
 onMounted(async () => {
   loadingTip.value = "正在获取文件列表";
   setLoading(true);
-  const resp = await fetch("//127.0.0.1:8080/list");
-  const payload = await resp.json();
-  fileList.value = payload.data.files;
-  await sleep(500);
-  setLoading(false);
+  try {
+    const resp = await fetch("/list");
+    const payload = await resp.json();
+    fileList.value = payload.data.files;
+    await sleep(500);
+  } catch (e: any) {
+    console.log(e);
+    Modal.error({
+      title: "发生错误",
+      content: e.message,
+    });
+  } finally {
+    setLoading(false);
+  }
 });
 
 const chooseFile = async () => {
   loadingTip.value = "正在获取名单";
   setLoading(true);
-  const resp = await fetch(`//127.0.0.1:8080/read?filename=${filename.value}`);
-  const payload = await resp.json();
-  fileObj.value = payload.data;
-  selectedList.value = payload.data.records;
-  selectedList.value.forEach((record: Student) => {
-    selectedKeys.value.push(record.name);
-  });
-  await sleep(500);
-  setDisable(false);
-  setLoading(false);
+  setSorted(false);
+  selectedKeys.value = []; // 清空上次选中的学生！！！
+  delay.value = 0;  // 清空再次分组的延迟
+  try {
+    const resp = await fetch(`/read?filename=${filename.value}`);
+    const payload = await resp.json();
+    fileObj.value = payload.data;
+    selectedList.value = payload.data.records;
+    selectedList.value.forEach((record: Student) => {
+      selectedKeys.value.push(record.name);
+    });
+    await sleep(500);
+  } catch (e: any) {
+    console.log(e);
+    Modal.error({
+      title: "发生错误",
+      content: e.message,
+    });
+  } finally {
+    setDisable(false);
+    setLoading(false);
+  }
 };
 
 const handleStart = async () => {
@@ -220,6 +245,7 @@ const cancelEdit = () => {
 const shuffle = async () => {
   setSorted(false);
   await sleep(delay.value);
+  groups.value = []; // 清空上次分组结果！！！
 
   for (let i = 0; i < count.value; i++) {
     groups.value[i] = []; //初始化分组

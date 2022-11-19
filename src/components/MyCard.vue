@@ -4,7 +4,13 @@
       <div class="studentName">{{ data.name }}</div>
     </template>
     <div class="studentId">
-      {{ data.id || "没有提供学号" }}
+      {{
+        data.id
+          ? data.id
+          : data.serial
+          ? "序号：".concat(data.serial)
+          : "没有提供学号"
+      }}
     </div>
   </a-card>
 </template>

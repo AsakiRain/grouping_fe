@@ -1,6 +1,6 @@
 <template>
   <transition-group tag="div" name="item" id="listContent">
-    <MyCard v-for="item in data" :key="item.id" :data="item" class="sortItem" />
+    <MyCard v-for="item in data" :key="item.name" :data="item" class="sortItem" />
   </transition-group>
 </template>
 <script lang="ts" setup>

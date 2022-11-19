@@ -2,7 +2,8 @@ import { TableColumnData } from "@arco-design/web-vue";
 
 export interface Student {
   name: string;
-  id: string;
+  id?: string;
+  serial?: string;
 }
 export interface Field {
   title: string;
