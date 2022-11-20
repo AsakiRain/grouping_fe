@@ -243,6 +243,13 @@ const cancelEdit = () => {
 };
 
 const shuffle = async () => {
+  if (selectedList.value.length === 0) {
+    Modal.info({
+      title: "提示",
+      content: "没有人参与分组",
+    });
+    return;
+  }
   setSorted(false);
   await sleep(delay.value);
   groups.value = []; // 清空上次分组结果！！！
